@@ -53,4 +53,26 @@ Dedicated folder for unit tests that run on a Linux environment, providing near-
 * **test_sum/**: Contains the test suite for the `Sum` class. As components grow, each class or logic block should have its own dedicated folder within `host_test` for better organization.
 * **gtest/**: This directory contains the `CMakeLists.txt` responsible for configuring and fetching the **GoogleTest** framework, making it available for the test suites.
 
+## Test Project Configuration (test_sum)
 
+The directory `01_basic_test/host_test/test_sum` is a **standalone project**. It follows the standard ESP-IDF project structure but is specifically tailored for host execution.
+
+### 1. Project Level: test_sum/CMakeLists.txt
+
+The top-level CMakeLists in the test folder defines how the project finds its dependencies.
+
+#### Key Logic:
+* **EXTRA_COMPONENT_DIRS**: Since the component we are testing (`01_basic_test`) and our GTest wrapper are outside this project's folder, we use `list(APPEND ...)` to tell the build system where to look for them.
+* **COMPONENTS**: By explicitly setting `set(COMPONENTS main 01_basic_test)`, we strictly limit what gets compiled. Instead of processing the hundreds of components in the full ESP-IDF framework, we only build what is strictly necessary. This significantly **reduces compilation time**.
+* **project(test_sum)**: This command finalizes the project definition and gives the output binary its name.
+
+### 2. Component Level: main/CMakeLists.txt
+
+Inside the `main` folder of our test project, we treat our test logic as a component itself.
+
+#### Key Logic:
+* **idf_component_register**: This is the standard way to register the source files (`main.cpp`, `test_sum.cpp`) and include directories.
+* **REQUIRES**: We explicitly declare that this test component depends on:
+    1. **gtest**: Our external wrapper.
+    2. **01_basic_test**: The actual logic we want to validate.
+* **WHOLE_ARCHIVE**: This is a crucial flag for testing. GoogleTest uses static constructors to "auto-register" tests. However, since `test_sum.cpp` functions are never explicitly called by `main.cpp`, the linker might think they are unused and skip them to save space. `WHOLE_ARCHIVE` forces the linker to include every object file, ensuring all tests are discovered and executed.
