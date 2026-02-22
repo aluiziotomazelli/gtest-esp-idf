@@ -2,6 +2,9 @@
 
 #include "sum.hpp"
 
+// ======================================================================
+// Smoke Test
+// ======================================================================
 /**
  * @brief Basic verification test (Smoke Test).
  * * This test serves as a baseline to validate that the GoogleTest framework
@@ -14,11 +17,9 @@ TEST(TestSum, GTestSmokeTest)
     EXPECT_TRUE(true);
 }
 
-/**
- * @brief Unit tests for the Sum class.
- * This suite validates the basic arithmetic logic of the add function
- * to ensure the component performs correctly under standard conditions.
- */
+// ======================================================================
+// Basic tests for the add(int a, int b) function
+// ======================================================================
 
 /**
  * @test Verifies that the add function returns the correct sum of two integers.
@@ -53,6 +54,10 @@ TEST(TestSum, NegativeAddition)
     // Check addition of positive and negative numbers
     EXPECT_EQ(calc.add(-5, 10), 5);
 }
+
+// ======================================================================
+// Basic tests for the add_constrained(int a, int b) function
+// ======================================================================
 
 /**
  * @test Happy Path: Verifies that valid inputs within bounds return the correct sum.
