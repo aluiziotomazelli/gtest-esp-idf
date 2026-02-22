@@ -1,0 +1,40 @@
+name: 01 - Host Testing (GoogleTest)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '01_basic_test/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '01_basic_test/**'
+
+jobs:
+  run_gtest_on_host:
+    name: Run GoogleTest on Linux
+    runs-on: ubuntu-latest
+    container: espressif/idf:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build and Run Tests
+        shell: bash
+        # Path to project of class Sum
+        working-directory: 01_basic_test/host_test/test_sum
+        run: |
+          . $IDF_PATH/export.sh
+          idf.py --preview set-target linux
+          idf.py build
+          ./build/test_sum.elf
+
+      - name: Upload Test Artifacts (Optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-test-executable
+          path: 01_basic_test/host_test/test_sum/build/test_sum.elf

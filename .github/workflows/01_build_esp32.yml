@@ -1,0 +1,32 @@
+name: 01 - Build ESP32
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '01_basic_test/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '01_basic_test/**'
+
+jobs:
+  build_esp32_firmware:
+    name: Build Firmware on ESP-IDF
+    runs-on: ubuntu-latest
+    container: espressif/idf:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build Firmware
+        # Adjust the path accordingly: 01_basic_test/test_apps/test_build
+        working-directory: 01_basic_test/test_apps/test_build
+        shell: bash
+        run: |
+          . $IDF_PATH/export.sh
+          idf.py set-target esp32
+          idf.py build
