@@ -53,3 +53,49 @@ TEST(TestSum, NegativeAddition)
     // Check addition of positive and negative numbers
     EXPECT_EQ(calc.add(-5, 10), 5);
 }
+
+/**
+ * @test Happy Path: Verifies that valid inputs within bounds return the correct sum.
+ */
+TEST(TestSum, AddConstrained_HappyPath)
+{
+    Sum calc;
+
+    // Test a standard valid case
+    int result = calc.add_constrained(3, 4);
+    EXPECT_EQ(result, 7);
+}
+
+/**
+ * @test Edge Cases: Verifies behavior at the exact boundaries of the 0-10 range.
+ */
+TEST(TestSum, AddConstrained_EdgeCases)
+{
+    Sum calc;
+
+    // Minimum boundary: 0 + 0 should be 0
+    EXPECT_EQ(calc.add_constrained(0, 0), 0);
+
+    // Maximum boundary: 5 + 5 should be 10 (the upper limit)
+    EXPECT_EQ(calc.add_constrained(5, 5), 10);
+
+    // Maximum single input: 10 + 0 should be 10
+    EXPECT_EQ(calc.add_constrained(10, 0), 10);
+}
+
+/**
+ * @test Out of Range: Verifies that inputs or results exceeding limits return -1.
+ */
+TEST(TestSum, AddConstrained_OutOfRange)
+{
+    Sum calc;
+
+    // Input above the limit of 10
+    EXPECT_EQ(calc.add_constrained(11, 0), -1);
+
+    // Negative input below 0
+    EXPECT_EQ(calc.add_constrained(-1, 5), -1);
+
+    // Result exceeds 10 despite valid individual inputs (6 + 5 = 11)
+    EXPECT_EQ(calc.add_constrained(6, 5), -1);
+}
