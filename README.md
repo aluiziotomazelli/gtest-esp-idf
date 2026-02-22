@@ -1,6 +1,6 @@
 ### 01_basic_test
 
-![Build Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/01_build_target.yml/badge.svg)
+![Build Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/01_build_esp32.yml/badge.svg)
 ![Host Tests Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/01_host_tests.yml/badge.svg)
 
 
