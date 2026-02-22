@@ -26,3 +26,57 @@ Wrapping the logic in this guard ensures that heavy tasks—like downloading GTe
 
 ### 4. Interface Linking
 Since our `gtest` wrapper folder doesn't contain source files (it only fetches an external library), we use `target_link_libraries` with the `INTERFACE` keyword. This links the newly created `gtest` and `gmock` targets to the IDF component library, making them available to any other component that lists `gtest` in its `REQUIRES` or `PRIV_REQUIRES` list.
+
+## Running the Tests
+
+To execute the unit tests on your host machine (Linux), follow these steps from the component root:
+
+### 1. Navigate to the test project
+```bash
+cd 01_basic_test/host_test/test_sum
+```
+
+### 2. Set the target to Linux
+We use the `--preview` flag because host-based testing is an evolving feature in ESP-IDF. This command prepares the build system to compile using your local GCC/Clang instead of the Xtensa/RISC-V cross-compiler.
+```bash
+idf.py --preview set-target linux
+```
+
+### 3. Build the project
+This will trigger the GTest download (via FetchContent) and compile both the component and the test suite.
+```bash
+idf.py build
+```
+
+### 4. Execute the binary
+Once the build is complete, the executable ELF file will be located in the `build` directory. Run it directly to see the GoogleTest output:
+```bash
+./build/test_sum.elf
+```
+
+---
+
+## Expected Output
+If everything is correctly configured, you should see an output similar to this:
+```text
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from TestSum
+[ RUN      ] TestSum.GTestSmokeTest
+[       OK ] TestSum.GTestSmokeTest (0 ms)
+[ RUN      ] TestSum.BasicAddition
+[       OK ] TestSum.BasicAddition (0 ms)
+[ RUN      ] TestSum.NegativeAddition
+[       OK ] TestSum.NegativeAddition (0 ms)
+[ RUN      ] TestSum.AddConstrained_HappyPath
+[       OK ] TestSum.AddConstrained_HappyPath (0 ms)
+[ RUN      ] TestSum.AddConstrained_EdgeCases
+[       OK ] TestSum.AddConstrained_EdgeCases (0 ms)
+[ RUN      ] TestSum.AddConstrained_OutOfRange
+[       OK ] TestSum.AddConstrained_OutOfRange (0 ms)
+[----------] 6 tests from TestSum (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 6 tests.
+```
