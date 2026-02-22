@@ -42,3 +42,25 @@ Also known as "Negative Testing," this category ensures that the system handles 
 // Example: Result 11 is invalid and must return -1
 EXPECT_EQ(calc.add_constrained(6, 5), -1);
 ```
+
+## Running the Tests
+
+To execute the unit tests on your host machine (Linux), follow these steps from the component root:
+
+### 1. Set the target to Linux
+This command prepares the build system to compile using your local GCC/Clang instead of the Xtensa/RISC-V cross-compiler.
+```bash
+idf.py --preview set-target linux
+```
+
+### 3. Build the project
+This will trigger the GTest download (via FetchContent) and compile both the component and the test suite.
+```bash
+idf.py build
+```
+
+### 4. Execute the binary
+Once the build is complete, the executable ELF file will be located in the `build` directory. Run it directly to see the GoogleTest output:
+```bash
+./build/test_sum.elf
+```
