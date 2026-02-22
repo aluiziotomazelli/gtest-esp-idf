@@ -1,3 +1,9 @@
+### 01_basic_test
+
+![Build Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/01_build_target.yml/badge.svg)
+![Host Tests Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/01_host_tests.yml/badge.svg)
+
+
 # GoogleTest Integration (The Wrapper Approach)
 
 Unlike **Unity** (which is a native component integrated into ESP-IDF), **GoogleTest** must be "wrapped" to work within the IDF build system. This is achieved through the configuration in `01_basic_test/host_test/gtest/CMakeLists.txt`.

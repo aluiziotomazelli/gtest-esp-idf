@@ -1,3 +1,6 @@
+![Build Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/01_build_target.yml/badge.svg)
+![Host Tests Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/01_host_tests.yml/badge.svg)
+
 # 01_basic_test: Project Structure and Component Architecture
 
 This folder represents a standalone ESP-IDF component named **01_basic_test**. In the ESP-IDF build system, a component is defined by its directory name and its `CMakeLists.txt` file. This specific component is designed to demonstrate both target-based execution and host-based unit testing.
