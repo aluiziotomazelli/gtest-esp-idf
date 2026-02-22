@@ -1,81 +1,137 @@
 ![Build Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/01_build_esp32.yml/badge.svg)
 ![Host Tests Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/01_host_tests.yml/badge.svg)
 
-# 01_basic_test: Project Structure and Component Architecture
+# 01_basic_test: structure and GTest wrapper
 
-This folder represents a standalone ESP-IDF component named **01_basic_test**. In the ESP-IDF build system, a component is defined by its directory name and its `CMakeLists.txt` file. This specific component is designed to demonstrate both target-based execution and host-based unit testing.
+This folder is a standalone ESP-IDF component named `01_basic_test`. It covers two things: how to structure a component for both host testing and hardware deployment, and how to wrap GoogleTest so it plays nice with the IDF build system.
 
-## Directory Tree
-
-The project is organized as follows:
+## Directory structure
 
 ```text
-├── 01_basic_test
-│   ├── CMakeLists.txt             # Component build rules
-│   ├── host_test                  # Host-based (Linux) unit tests
-│   │   ├── gtest                  # GoogleTest framework configuration
-│   │   └── test_sum               # Specific test suite for the Sum class
-│   ├── include                    # Public headers
-│   │   ├── i_sum.hpp              # Interface (Abstract base class)
-│   │   └── sum.hpp                # Real implementation header
-│   ├── src                        # Source files
-│   │   └── sum.cpp                # Logic implementation
-│   └── test_apps                  # Verification projects for target hardware
-│       └── test_build             # Simple project to verify ESP32 compilation
+01_basic_test/
+├── CMakeLists.txt             # Component registration
+├── include/
+│   ├── i_sum.hpp              # Interface (abstract base class)
+│   └── sum.hpp                # Concrete class header
+├── src/
+│   └── sum.cpp                # Implementation
+├── host_test/
+│   ├── gtest/                 # GTest wrapper component
+│   └── test_sum/              # Test project for the Sum class
+└── test_apps/
+    └── test_build/            # Minimal project to verify ESP32 compilation
 ```
 
 ---
 
-## Component Breakdown
+## Component files
 
-### 01_basic_test
+### include/i_sum.hpp
 
-This folder, **01_basic_test**, is the root of this tutorial and is designed as a standalone ESP-IDF component. In the ESP-IDF build system, the directory name defines the component name; therefore, the component we are developing and testing is named `01_basic_test`.
+This file defines the interface using pure virtual functions. For this example it's not strictly needed — the `Sum` class is simple enough to test directly. But defining an interface from the start is worth it: in future tests, you can derive a **mock** from `i_sum.hpp` using GMock, which lets you test any component that depends on `Sum` without using the real implementation. Without an interface, mocking isn't possible.
 
+### src/sum.cpp
 
-### 1. include/
-Contains the header files for the component.
-* **i_sum.hpp**: Defines the interface using pure virtual functions. While not strictly necessary for simple logic tests, using interfaces is a best practice. It allows us to derive **Mocks** in future tests, decoupling the business logic from its dependencies.
-* **sum.hpp**: The header for the concrete `Sum` class.
+The actual logic. This is what runs on the ESP32 in production.
 
-### 2. src/
-Contains the implementation of the logic defined in the headers. This is the code that will eventually run on your production hardware.
+### test_apps/test_build/
 
-### 3. test_apps/test_build/
-A minimal ESP-IDF project used to verify that the component compiles and runs correctly on the actual hardware (e.g., ESP32).
-* **Purpose**: Validates the integration, memory footprint, and target compatibility.
-* **Usage**:
-    ```bash
-    idf.py set-target esp32
-    idf.py build
-    idf.py flash monitor
-    ```
+A minimal ESP-IDF project that verifies the component compiles for hardware:
 
-### 4. host_test/
-Dedicated folder for unit tests that run on a Linux environment, providing near-instant feedback without the need for hardware.
-* **test_sum/**: Contains the test suite for the `Sum` class. As components grow, each class or logic block should have its own dedicated folder within `host_test` for better organization.
-* **gtest/**: This directory contains the `CMakeLists.txt` responsible for configuring and fetching the **GoogleTest** framework, making it available for the test suites.
+```bash
+idf.py set-target esp32
+idf.py build
+idf.py flash monitor
+```
 
-## Test Project Configuration (test_sum)
+---
 
-The directory `01_basic_test/host_test/test_sum` is a **standalone project**. It follows the standard ESP-IDF project structure but is specifically tailored for host execution.
+## The GTest wrapper
 
-### 1. Project Level: test_sum/CMakeLists.txt
+GoogleTest isn't part of ESP-IDF, so it needs to be introduced as a component. The wrapper lives at `host_test/gtest/` and is just a `CMakeLists.txt` — no source files.
 
-The top-level CMakeLists in the test folder defines how the project finds its dependencies.
+### 1. Linux-only guard
 
-#### Key Logic:
-* **EXTRA_COMPONENT_DIRS**: Since the component we are testing (`01_basic_test`) and our GTest wrapper are outside this project's folder, we use `list(APPEND ...)` to tell the build system where to look for them.
-* **COMPONENTS**: By explicitly setting `set(COMPONENTS main 01_basic_test)`, we strictly limit what gets compiled. Instead of processing the hundreds of components in the full ESP-IDF framework, we only build what is strictly necessary. This significantly **reduces compilation time**.
-* **project(test_sum)**: This command finalizes the project definition and gives the output binary its name.
+```cmake
+if(IDF_TARGET STREQUAL "linux")
+```
 
-### 2. Component Level: main/CMakeLists.txt
+GTest only gets processed when the build target is `linux`. This prevents it from being compiled into the ESP32 binary.
 
-Inside the `main` folder of our test project, we treat our test logic as a component itself.
+### 2. FetchContent
 
-#### Key Logic:
-* **idf_component_register**: This is the standard way to register the source files (`main.cpp`, `test_sum.cpp`) and include directories.
-* **REQUIRES**: We explicitly declare that this test component depends on:
-    1. **gtest**: Our external wrapper.
-    2. **01_basic_test**: The actual logic we want to validate.
-* **WHOLE_ARCHIVE**: This is a crucial flag for testing. GoogleTest uses static constructors to "auto-register" tests. However, since `test_sum.cpp` functions are never explicitly called by `main.cpp`, the linker might think they are unused and skip them to save space. `WHOLE_ARCHIVE` forces the linker to include every object file, ensuring all tests are discovered and executed.
+```cmake
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        v1.14.0
+)
+```
+
+GTest is downloaded from GitHub at build time. The repo stays small, and updating the version is just changing the tag.
+
+### 3. Build phase guard
+
+```cmake
+if(NOT CMAKE_BUILD_EARLY_EXPANSION)
+  FetchContent_MakeAvailable(googletest)
+endif()
+```
+
+ESP-IDF runs in two phases: first it scans components to resolve dependencies, then it actually builds. FetchContent can't run during the scan phase — it would fail trying to download an external library while the build system is still mapping out what exists. The guard restricts the download to the real build phase.
+
+### 4. INTERFACE linking
+
+Since the wrapper has no source files of its own, it registers as an `INTERFACE` component. This means it doesn't compile anything itself — it just exposes GTest and GMock to whoever needs them. Any component that lists `gtest` in its `REQUIRES` gets access automatically.
+
+Even in this example where only one test project uses GTest, the INTERFACE approach is the right pattern. It keeps the wrapper reusable as more test projects are added.
+
+---
+
+## Test project structure (test_sum)
+
+`host_test/test_sum/` is a standalone ESP-IDF project configured to build for Linux. Two CMake details are worth noting:
+
+### EXTRA_COMPONENT_DIRS
+
+```cmake
+list(APPEND EXTRA_COMPONENT_DIRS "../../" "../../host_test")
+```
+
+The component under test (`01_basic_test`) and the GTest wrapper are outside this project's folder. `EXTRA_COMPONENT_DIRS` tells the build system where to find them.
+
+### COMPONENTS
+
+```cmake
+set(COMPONENTS main 01_basic_test)
+```
+
+Without this, the build would process the entire ESP-IDF component tree — hundreds of components. Listing only what's needed cuts compilation time significantly.
+
+### WHOLE_ARCHIVE
+
+```cmake
+idf_component_register(
+    ...
+    WHOLE_ARCHIVE
+)
+```
+
+GoogleTest registers tests through static constructors. Since `test_sum.cpp` functions are never called directly by `main.cpp`, the linker may discard them as unused. `WHOLE_ARCHIVE` forces every object file to be included, so all tests are discovered and run.
+
+---
+
+## Running the tests
+
+From the test project folder:
+
+```bash
+cd 01_basic_test/host_test/test_sum
+idf.py --preview set-target linux
+idf.py build
+./build/test_sum.elf
+```
+
+The `--preview` flag is needed because Linux target support is still marked as a preview feature in ESP-IDF. It switches the compiler from Xtensa/RISC-V to your local GCC.
+
+For the test strategy and what each test covers, see the [test_sum README](host_test/test_sum/README.md).

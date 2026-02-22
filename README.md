@@ -1,88 +1,53 @@
-### 01_basic_test
+# GoogleTest with ESP-IDF
 
-![Build Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/01_build_esp32.yml/badge.svg)
-![Host Tests Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/01_host_tests.yml/badge.svg)
+This repo is a series of tutorials on how to use GoogleTest (GTest) for unit testing ESP-IDF components on Linux, without flashing to hardware.
 
+## Why host-based testing?
 
-# GoogleTest Integration (The Wrapper Approach)
+The usual ESP-IDF loop is: edit, flash, read serial, repeat. For logic-heavy code — state machines, calculations, protocol parsing — this gets slow. Host-based testing lets you run your tests on Linux using your local GCC instead of the Xtensa/RISC-V cross-compiler. Feedback goes from minutes to seconds.
 
-Unlike **Unity** (which is a native component integrated into ESP-IDF), **GoogleTest** must be "wrapped" to work within the IDF build system. This is achieved through the configuration in `01_basic_test/host_test/gtest/CMakeLists.txt`.
+## Why GoogleTest instead of Unity?
 
-## Understanding ESP-IDF Components
-In the ESP-IDF ecosystem, every library or module is treated as a **Component**. Even a simple project like "Blink" has a `main` component. For more details on this architecture, refer to the [official documentation](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/build-system.html) or this [YouTube - technical deep dive](https://www.youtube.com/watch?v=7utLBxSOXlQ&t=2484s).
+ESP-IDF ships with Unity, a lightweight test framework that works well for basic assertions. The reason to bring in GoogleTest is **mocking**. GMock, which comes bundled with GTest, lets you create mock objects from interfaces. This makes it possible to test a component in isolation, without needing its real dependencies — a sensor, a driver, a network layer — to be present.
 
-To make GTest available, we create a "wrapper component" that handles the framework's lifecycle.
+Unity works alongside CMock, which ESP-IDF uses internally to mock its own components. The problem is that CMock doesn't handle C++ classes — so if your component has multiple classes with distinct responsibilities, you end up writing mocks by hand. That gets tedious fast. GMock handles this directly in the test file, in a few lines.
 
-## Key Implementation Details
+## How ESP-IDF components work
 
-### 1. Target Validation
-The script first ensures that GTest is only processed when the build target is `linux`. Since GTest is intended for host-based testing, we prevent it from being included in hardware builds (e.g., ESP32), which avoids compilation errors and saves resources.
+In ESP-IDF, every library or module is a **component**: a folder with a `CMakeLists.txt` that registers its sources and dependencies using `idf_component_register`. The folder name is the component name. When one component needs another, it declares it in `REQUIRES`. The build system handles the rest.
 
-### 2. The FetchContent Strategy
-Instead of manually downloading or including the GTest source code in our repository, we use the `FetchContent` module:
-* **Lightweight Repository**: The component remains small because the framework is only downloaded during the build phase.
-* **Easy Version Control**: Switching GTest versions is as simple as updating the URL or tag in the `FetchContent_Declare` block.
-* **Automation**: `FetchContent_MakeAvailable` automatically handles the download and integration of the library.
+Each tutorial in this repo is a standalone component that can be tested on Linux and also compiled for hardware.
 
-### 3. Handling the Two-Phase Build System
-The ESP-IDF build system operates in two distinct stages. This is why we use the guard `if(NOT CMAKE_BUILD_EARLY_EXPANSION)`:
-* **Requirement Expansion Phase**: IDF first runs a script to discover dependencies and build the component tree.
-* **Actual Build Phase**: Once dependencies are resolved, the real compilation starts.
-Wrapping the logic in this guard ensures that heavy tasks—like downloading GTest and processing its internal CMake rules—only happen during the **actual build phase**. This prevents the initial dependency discovery script from failing or hanging while trying to fetch external content.
+## Repository structure
 
-### 4. Interface Linking
-Since our `gtest` wrapper folder doesn't contain source files (it only fetches an external library), we use `target_link_libraries` with the `INTERFACE` keyword. This links the newly created `gtest` and `gmock` targets to the IDF component library, making them available to any other component that lists `gtest` in its `REQUIRES` or `PRIV_REQUIRES` list.
+```text
+gtest-esp-idf/
+├── 01_basic_test/    # GTest wrapper setup and basic arithmetic tests
+├── 02_mocks/         # (coming soon) Testing with GMock
+└── ...
+```
 
-## Running the Tests
+## Prerequisites
 
-To execute the unit tests on your host machine (Linux), follow these steps from the component root:
+- **ESP-IDF 5.x** installed and sourced in your shell (`source $IDF_PATH/export.sh`)
+- **Linux** or **WSL2** (the linux target doesn't work on macOS or native Windows)
+- **CMake** (comes with ESP-IDF)
+- **Git** (needed by FetchContent to download GTest)
 
-### 1. Navigate to the test project
+## Running the first example
+
 ```bash
 cd 01_basic_test/host_test/test_sum
-```
-
-### 2. Set the target to Linux
-We use the `--preview` flag because host-based testing is an evolving feature in ESP-IDF. This command prepares the build system to compile using your local GCC/Clang instead of the Xtensa/RISC-V cross-compiler.
-```bash
 idf.py --preview set-target linux
-```
-
-### 3. Build the project
-This will trigger the GTest download (via FetchContent) and compile both the component and the test suite.
-```bash
 idf.py build
-```
-
-### 4. Execute the binary
-Once the build is complete, the executable ELF file will be located in the `build` directory. Run it directly to see the GoogleTest output:
-```bash
 ./build/test_sum.elf
 ```
 
----
+For a full walkthrough of what each step does, see the [01_basic_test README](01_basic_test/README.md).
 
-## Expected Output
-If everything is correctly configured, you should see an output similar to this:
-```text
-[==========] Running 6 tests from 1 test suite.
-[----------] Global test environment set-up.
-[----------] 6 tests from TestSum
-[ RUN      ] TestSum.GTestSmokeTest
-[       OK ] TestSum.GTestSmokeTest (0 ms)
-[ RUN      ] TestSum.BasicAddition
-[       OK ] TestSum.BasicAddition (0 ms)
-[ RUN      ] TestSum.NegativeAddition
-[       OK ] TestSum.NegativeAddition (0 ms)
-[ RUN      ] TestSum.AddConstrained_HappyPath
-[       OK ] TestSum.AddConstrained_HappyPath (0 ms)
-[ RUN      ] TestSum.AddConstrained_EdgeCases
-[       OK ] TestSum.AddConstrained_EdgeCases (0 ms)
-[ RUN      ] TestSum.AddConstrained_OutOfRange
-[       OK ] TestSum.AddConstrained_OutOfRange (0 ms)
-[----------] 6 tests from TestSum (0 ms total)
+## Tutorial series
 
-[----------] Global test environment tear-down
-[==========] 6 tests from 1 test suite ran. (0 ms total)
-[  PASSED  ] 6 tests.
-```
+| Chapter                                  | Topic                                                 |
+| ---------------------------------------- | ----------------------------------------------------- |
+| [01_basic_test](01_basic_test/README.md) | GTest wrapper setup, component structure, basic tests |
+| 02_mocks                                 | Testing with GMock (coming soon)                      |
