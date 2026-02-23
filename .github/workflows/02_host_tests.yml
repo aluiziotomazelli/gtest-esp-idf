@@ -1,4 +1,4 @@
-name: 01 - Host Testing (GoogleTest)
+name: 02 - Host Testing (GoogleTest)
 
 on:
   push:

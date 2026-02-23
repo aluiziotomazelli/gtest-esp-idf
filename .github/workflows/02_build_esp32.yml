@@ -1,4 +1,4 @@
-name: 01 - Build ESP32
+name: 02 - Build ESP32
 
 on:
   push:
