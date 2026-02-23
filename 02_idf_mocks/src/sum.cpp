@@ -28,6 +28,7 @@ int Sum::add_constrained(int a, int b)
 
 esp_err_t Sum::add_constrained_err(int a, int b, int &result)
 {
+    result = -1; // Invalid result on initialization
     if (a < 0 || a > 10 || b < 0 || b > 10) {
         esp_err_t err = ESP_ERR_INVALID_ARG;
         ESP_LOGE(TAG, "Invalid params: a = %d, b = %d, error = %s", a, b, esp_err_to_name(err));
