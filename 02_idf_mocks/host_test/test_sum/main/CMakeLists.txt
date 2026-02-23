@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS 
+        "main.cpp"            #The main file
+        "test_sum.cpp"        #The test file
+        "test_sum param.cpp"  #The parameterized test file
+    INCLUDE_DIRS 
+        "."
+    REQUIRES 
+        gtest               #The GTest wrapper
+        02_idf_mocks        #The component being tested
+        
+    WHOLE_ARCHIVE           # Force the linker to include all object files.
+                            # Without this, test_sum.cpp might be skipped as they aren't explicitly called in main.cpp.
+)
