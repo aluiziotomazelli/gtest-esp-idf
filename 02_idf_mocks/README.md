@@ -107,6 +107,18 @@ idf.py --preview set-target linux
 idf.py build
 ./build/test_sum.elf
 ```
+Expected result:
+```text
+[==========] Running 17 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 9 tests from TestSum
+...
+[----------] 8 tests from SumParamTest/SumParamTest
+...
+[----------] Global test environment tear-down
+[==========] 17 tests from 2 test suites ran. (1 ms total)
+[  PASSED  ] 17 tests.
+```
 
 ---
 
