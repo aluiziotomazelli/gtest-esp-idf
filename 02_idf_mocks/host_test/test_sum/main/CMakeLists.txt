@@ -2,7 +2,7 @@ idf_component_register(
     SRCS 
         "main.cpp"            #The main file
         "test_sum.cpp"        #The test file
-        "test_sum param.cpp"  #The parameterized test file
+        "test_sum_param.cpp"  #The parameterized test file
     INCLUDE_DIRS 
         "."
     REQUIRES 
