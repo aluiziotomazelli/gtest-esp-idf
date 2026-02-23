@@ -1,0 +1,40 @@
+{
+    "folders": [
+        {
+            "path": "."
+        },
+        {
+            "path": "01_basic_test"
+        },
+        {
+            "path": "01_basic_test/test_apps/test_build"
+        },
+        {
+            "path": "01_basic_test/host_test/test_sum"
+        },
+        {
+            "path": "02_idf_mocks"
+        },
+    ],
+    "settings": {
+        "terminal.integrated.env.linux": {
+            "PATH": "~/.espressif/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin:/home/german/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin:${env:PATH}",
+            "IDF_PATH": "~/dev/esp/esp-idf"
+        },
+        "clangd.path": "~/.espressif/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
+        "clangd.arguments": [
+            "--background-index",
+            "--log=verbose",
+            "--header-insertion=never",
+            "--query-driver= ~/.espressif/tools/**/bin/*-elf-gcc",
+        ],
+        "files.associations": {
+            "*.h": "c",
+            "*.c": "c",
+            "*.hpp": "cpp",
+            "*.cpp": "cpp",
+            "*.tpp": "cpp"
+        },
+        "C_Cpp.intelliSenseEngine": "Tag Parser",
+    },
+}
