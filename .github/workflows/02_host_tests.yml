@@ -14,7 +14,7 @@ jobs:
   run_gtest_on_host:
     name: Run GoogleTest on Linux
     runs-on: ubuntu-latest
-    container: espressif/idf:latest
+    container: espressif/idf:release-v5.5
 
     steps:
       - name: Checkout repository
