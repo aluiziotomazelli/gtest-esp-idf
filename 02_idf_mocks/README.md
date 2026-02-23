@@ -85,6 +85,11 @@ Same logic as `add_constrained`, but returns `esp_err_t` and emits logs on error
 list(APPEND EXTRA_COMPONENT_DIRS "$ENV{IDF_PATH}/tools/mocks/driver")
 ```
 
+- **Note:** The CI workflow uses `espressif/idf:release-v5.5` instead of `latest`.
+Host testing and IDF mocks are still experimental, and newer IDF versions
+may introduce breaking changes in the mock generation.
+
+
 Points the build system to the IDF driver mock, which provides `esp_err_t` and the logging macros for the Linux target.
 
 ### Test files
