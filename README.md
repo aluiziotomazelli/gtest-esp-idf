@@ -47,7 +47,7 @@ For a full walkthrough of what each step does, see the [01_basic_test README](01
 
 ## Tutorial series
 
-| Chapter                                  | Topic                                                 |
-| ---------------------------------------- | ----------------------------------------------------- |
-| [01_basic_test](01_basic_test/README.md) | GTest wrapper setup, component structure, basic tests |
-| 02_mocks                                 | Testing with GMock (coming soon)                      |
+| Chapter                                  | Topic                                                  |
+| ---------------------------------------- | ------------------------------------------------------ |
+| [01_basic_test](01_basic_test/README.md) | GTest wrapper setup, component structure, basic tests  |
+| [02_idf_mocks](02_idf_mocks/README.md)   | Testing with esp_err_t type and ESP_LOGx with IDF mock |
