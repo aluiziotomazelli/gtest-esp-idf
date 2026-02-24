@@ -47,7 +47,9 @@ For a full walkthrough of what each step does, see the [01_basic_test README](01
 
 ## Tutorial series
 
-| Chapter                                  | Topic                                                  |
-| ---------------------------------------- | ------------------------------------------------------ |
-| [01_basic_test](01_basic_test/README.md) | GTest wrapper setup, component structure, basic tests  |
-| [02_idf_mocks](02_idf_mocks/README.md)   | Testing with esp_err_t type and ESP_LOGx with IDF mock |
+| Chapter                                      | Topic                                                  |
+| -------------------------------------------- | ------------------------------------------------------ |
+| [01_basic_test](01_basic_test/README.md)     | GTest wrapper setup, component structure, basic tests  |
+| [02_idf_mocks](02_idf_mocks/README.md)       | Testing with esp_err_t type and ESP_LOGx with IDF mock |
+| [03_class_mocks](03_class_mocks/README.md)   | The SumBoss class and mocking the Sum class            |
+| [04_hal_and_leds](04_hal_and_leds/README.md) | Full integration with HAL, LedSargent and SumBoss      |
