@@ -12,4 +12,9 @@ public:
     esp_err_t green() override;
     esp_err_t red() override;
     esp_err_t off() override;
+
+private:
+    GpioHal &gpio_hal_;
+    gpio_num_t green_;
+    gpio_num_t red_;
 };
