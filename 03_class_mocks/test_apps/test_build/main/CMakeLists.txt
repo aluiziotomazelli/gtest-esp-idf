@@ -4,5 +4,7 @@ idf_component_register(
 
     REQUIRES 
         "03_class_mocks"   #The component being tested
+    PRIV_REQUIRES
+        driver
 
 )
