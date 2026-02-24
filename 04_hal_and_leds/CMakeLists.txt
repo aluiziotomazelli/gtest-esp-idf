@@ -11,5 +11,6 @@ idf_component_register(                 #Register the component
 
     REQUIRES 
         driver                          # Required to esp_err_t and ESP_LOGx
+        esp_driver_gpio
     
 )
