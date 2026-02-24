@@ -1,7 +1,10 @@
 #include <stdio.h>
 
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
 
+#include "gpio_hal.hpp"
+#include "led_sargent.hpp"
 #include "sum.hpp"
 #include "sum_boss.hpp"
 
@@ -66,4 +69,14 @@ extern "C" void app_main(void)
     if (err == ESP_OK) {
         ESP_LOGI(TAG, "11 + 0 = %d", result_boss);
     }
+
+    GpioHal gpio_hal;
+    LedSargent led_sargent(gpio_hal, GPIO_NUM_4, GPIO_NUM_5);
+    led_sargent.off();
+    led_sargent.green();
+    vTaskDelay(pdMS_TO_TICKS(500));
+    led_sargent.red();
+    vTaskDelay(pdMS_TO_TICKS(500));
+    led_sargent.off();
+    vTaskDelay(pdMS_TO_TICKS(500));
 }
