@@ -9,7 +9,7 @@ list(APPEND EXTRA_COMPONENT_DIRS
 
 # Explicitly list the components to be included in the build.
 # Note: 'main' is the folder inside host_test/test_sum/
-set(COMPONENTS main 03_class_mocks)
+set(COMPONENTS main 04_hal_and_leds)
 
 # Standard ESP-IDF project configuration.
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)

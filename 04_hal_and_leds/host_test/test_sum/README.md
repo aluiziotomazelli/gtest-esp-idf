@@ -1,47 +1,43 @@
 # Test strategy: Sum component
 
-The tests from [02_idf_mocks](../../02_idf_mocks/host_test/test_sum/README.md) are kept as-is. This chapter adds `test_sum_boss.cpp`, which tests `SumBoss` in isolation using GMock.
+The tests from [03_class_mock](../../03_class_mock/host_test/test_sum/README.md) are kept as-is. This chapter adds two new test files: `test_led_sargent.cpp` and an updated `test_sum_boss.cpp`.
+
+---
+
+## test_led_sargent.cpp
+
+`LedSargent` is tested in isolation using `MockGpioHal`. What's worth highlighting is what a mock makes possible here:
+
+**ConstructorSetsCorrectPins** — verifies that the constructor calls `pin_set_direction` for both pins with the correct mode. On a real board, if this fails silently, the LEDs simply don't work with no obvious error.
+
+**GreenSetsCorrectPin / RedSetsCorrectPin** — verifies that each method drives the correct pin high. A bug that inverts the pins would be invisible on a board unless you're watching both LEDs carefully.
+
+**OffSetsCorrect** — verifies that both pins go low.
+
+**OffAbortsOnFirstFailure / OffAbortsOnSecondFailure** — verifies the error propagation logic in `off()`. If the first pin fails, the second must not be touched. If the second fails, the error must propagate. Simulating a GPIO failure on a real board is nearly impossible — with a mock, it's one line.
+
+The constructor test uses a regular `MockGpioHal` to be strict about unexpected calls. The method tests use `NiceMock<MockGpioHal>` to silence the constructor's `pin_set_direction` calls, so each test only deals with what it's actually testing.
 
 ---
 
 ## test_sum_boss.cpp
 
-### MockSum
+`SumBoss` now receives two dependencies — `ISum&` and `ILedSargent&` — so both are mocked in the unit tests:
 
-Before the tests, a mock is created from `ISum`:
+**CallsGreenOnSuccess** — when `Sum` returns `ESP_OK`, the boss must call `green()` and not `red()`.
 
-```cpp
-class MockSum : public ISum {
-public:
-    MOCK_METHOD(int, add, (int a, int b), (override));
-    MOCK_METHOD(int, add_constrained, (int a, int b), (override));
-    MOCK_METHOD(esp_err_t, add_constrained_err, (int a, int b, int &result), (override));
-};
-```
+**CallsRedOnError** — when `Sum` returns an error, the boss must call `red()` and not `green()`. The sum error must propagate unchanged — the LED error is ignored by design.
 
-`SumBoss` receives an `ISum&` via constructor injection, so it has no idea whether it's talking to a real `Sum` or a mock. That's the point: with the SumBoss coor
+**ReturnsLedErrorIfGreenFails** — when the sum succeeds but `green()` fails, the boss must return the LED error. This scenario would be nearly impossible to reproduce on hardware, but with mocks it's straightforward.
 
-### DelegatesToSumAndReturnsResult
+**PropagatesRedIgnoresLedError** — when both the sum and `red()` fail, the sum error is what reaches the caller.
 
-Verifies that the boss passes the arguments to `Sum` correctly and returns both the result and the error code untouched. `SetArgReferee<2>` simulates what the real `Sum` would write into the reference argument:
+### Integration tests
 
-```cpp
-EXPECT_CALL(mock, add_constrained_err(3, 4, _))
-    .WillOnce(DoAll(SetArgReferee<2>(7), Return(ESP_OK)));
+Three tests use the real `Sum` with a mocked `LedSargent`. These verify that the boss behaves correctly end-to-end with actual arithmetic — not a `WillOnce(Return(...))`:
 
-EXPECT_EQ(ESP_OK, err);
-EXPECT_EQ(7, result);
-```
+- `CallsGreenOnSuccess` — `compute(3, 4)` with real `Sum`, expects `ESP_OK` and result `7`
+- `CallsRedOnError` — `compute(6, 6)` exceeds the limit, expects `ESP_FAIL`
+- `CallsRedWithInvalidArg` — `compute(-3, 4)` has an invalid input, expects `ESP_ERR_INVALID_ARG`
 
-### PropagatesErrorFromSum
-
-Verifies that when `Sum` returns an error, the boss passes it through unchanged. The result value is not checked — when an error occurs, its value is unspecified.
-
-```cpp
-EXPECT_CALL(mock, add_constrained_err(11, 5, _))
-    .WillOnce(Return(ESP_ERR_INVALID_ARG));
-
-EXPECT_EQ(ESP_ERR_INVALID_ARG, err);
-```
-
-These two tests are modest — SumBoss is still a thin layer with no logic of its own. What they validate is the contract: the boss delegates correctly and doesn't interfere with what Sum returns.
+The LED is still mocked in all three — there's no hardware in host tests. What changes is that the error codes now come from the real `Sum`, not from a `WillOnce(Return(...))`.

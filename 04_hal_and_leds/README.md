@@ -1,84 +1,89 @@
-![Build Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/03_build_esp32.yml/badge.svg)
-![Host Tests Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/03_host_tests.yml/badge.svg)
+![Build Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/04_build_esp32.yml/badge.svg)
+![Host Tests Status](https://github.com/aluiziotomazelli/gtest-esp-idf/actions/workflows/04_host_tests.yml/badge.svg)
 
-# 03_class_mock: testing a class that depends on another
+# 04_hal_and_leds: hardware abstraction and LED feedback
 
-This chapter builds on [02_idf_mocks](../02_idf_mocks/README.md). The GTest wrapper, CMake setup, and `esp_err_t` integration are explained there — this README covers only what changed.
+This chapter builds on [03_class_mock](../03_class_mock/README.md). This README covers only what changed.
 
-The goal here is to introduce `SumBoss`, a class that depends on `ISum`, and test it in isolation using GMock. This is where having `ISum` as an interface since `01_basic_test` starts to matter.
+Two new classes in this chapter: `GpioHal`, the concrete HAL that talks to the ESP-IDF GPIO driver, and `LedSargent`, which controls the LEDs. `SumBoss` is updated to use `LedSargent` and now makes a real decision based on the result.
 
 ---
 
 ## What changed
 
-### include/sum_boss.hpp
+### IGpioHal and GpioHal
 
-The `SumBoss` class receives an `ISum` reference via constructor injection:
+`IGpioHal` is the interface that abstracts the GPIO driver:
 
 ```cpp
-class SumBoss {
-public:
-    SumBoss(ISum &sum);
-    esp_err_t compute(int a, int b, int &result);
-private:
-    ISum &sum_;
-};
+virtual esp_err_t pin_set_direction(gpio_num_t gpio_num, gpio_mode_t mode) = 0;
+virtual esp_err_t pin_set_level(gpio_num_t gpio_num, uint32_t level) = 0;
 ```
 
-Dependency injection is what makes the class testable in isolation — in production you pass a real `Sum`, in tests you pass a mock.
-
-### src/sum_boss.cpp
+`GpioHal` is the concrete implementation — it just calls the real ESP-IDF functions:
 
 ```cpp
-SumBoss::SumBoss(ISum &sum) : sum_(sum) {}
+esp_err_t pin_set_direction(gpio_num_t gpio_num, gpio_mode_t mode) override {
+    return gpio_set_direction(gpio_num, mode);
+}
+esp_err_t pin_set_level(gpio_num_t gpio_num, uint32_t level) override {
+    return gpio_set_level(gpio_num, level);
+}
+```
+
+`GpioHal` is not tested — it's a thin wrapper around ESP-IDF, which is already tested by Espressif. Without the interface, there's no way to test `LedSargent` without real hardware.
+
+### ILedSargent and LedSargent
+
+`LedSargent` receives `IGpioHal&` and the two GPIO pin numbers via constructor injection. The constructor immediately configures both pins as outputs:
+
+```cpp
+LedSargent::LedSargent(IGpioHal &gpio_hal, gpio_num_t green, gpio_num_t red)
+    : gpio_hal_(gpio_hal), green_(green), red_(red)
+{
+    gpio_hal_.pin_set_direction(green, GPIO_MODE_OUTPUT);
+    gpio_hal_.pin_set_direction(red, GPIO_MODE_OUTPUT);
+}
+```
+
+Three methods: `green()`, `red()`, and `off()`. The `off()` method returns early if the first pin fails — the second pin is not touched in that case.
+
+`LedSargent` receives `IGpioHal&`, not `GpioHal&` directly. Without the interface, `MockGpioHal` wouldn't fit and the class couldn't be tested in isolation.
+
+### SumBoss
+
+`SumBoss` now receives `ILedSargent&` as a second dependency and acts on the result:
+
+```cpp
+SumBoss::SumBoss(ISum &sum, ILedSargent &led_sargent)
+    : sum_(sum), led_sargent_(led_sargent) {}
 
 esp_err_t SumBoss::compute(int a, int b, int &result)
 {
-    esp_err_t ret = sum_.add_constrained_err(a, b, result);
+        esp_err_t ret = sum_.add_constrained_err(a, b, result);
+    if (ret == ESP_OK) {            // no error
+        ret = led_sargent_.green(); // check if green led works
+        if (ret != ESP_OK) {        // green led does not work
+            return ret;             // return the error
+        }
+    }
+    else {                  // if the sum failed
+        led_sargent_.red(); // the sum error is already in ret
+    }
     return ret;
 }
 ```
 
-For now `SumBoss` is a thin layer — it delegates to `Sum` and returns the result untouched. The boss is thin for now — that changes in the next chapter when it starts making decisions based on the result.
-
-### CMakeLists.txt (component root)
-
-`sum_boss.cpp` added to `SRCS`.
-
----
-
-## test_sum_boss.cpp
-
-Two tests cover `SumBoss`. They won't catch complex logic bugs — the boss is still a passthrough — but they validate the contract between the two classes and demonstrate the GMock mechanics that will matter more in the next chapter.
-
-**DelegatesToSumAndReturnsResult** — verifies that the boss passes the arguments to `Sum` and returns both the result and the error code untouched. `DoAll(SetArgReferee<2>(...))` sets the output argument via reference, simulating what the real `Sum` would do:
-
-```cpp
-EXPECT_CALL(mock, add_constrained_err(3, 4, _))
-    .WillOnce(DoAll(SetArgReferee<2>(7), Return(ESP_OK)));
-
-EXPECT_EQ(ESP_OK, err);
-EXPECT_EQ(7, result);
-```
-
-**PropagatesErrorFromSum** — verifies that when `Sum` returns an error, the boss propagates it instead of swallowing it:
-
-```cpp
-EXPECT_CALL(mock, add_constrained_err(6, 5, _))
-    .WillOnce(Return(ESP_FAIL));
-
-EXPECT_EQ(ESP_FAIL, err);
-```
-The tests are modest — the boss doesn't do much yet. But the real value shows up as the boss grows. In this example Sum is a simple arithmetic class, but imagine it were an ultrasonic sensor measuring distance. Instead of having a real sensor wired to a board, you can mock it and simulate any distance or response time you want — valid readings, out-of-range values, timeouts — and verify that the boss handles every scenario correctly. No hardware. No board. No waiting.
+One thing worth explaining: if `green()` fails, the LED error propagates — the caller needs to know the full operation didn't complete. If `red()` fails, the error is ignored — the sum already failed and that's what the caller gets back.
 
 ---
 
 ## Seeing it on real hardware
 
-`test_apps/test_build/` has a working example with `SumBoss` integrated, using dependency injection with the real `Sum`. Valid and invalid inputs are tested and the results printed via serial:
+`test_apps/test_build/` has a working example with all classes wired together using real dependencies. Valid and invalid inputs are tested, the results printed via serial, and the LEDs light up on the board:
 
 ```bash
-cd 03_class_mock/test_apps/test_build
+cd 04_hal_and_leds/test_apps/test_build
 idf.py set-target esp32
 idf.py build
 idf.py flash monitor
@@ -89,21 +94,10 @@ idf.py flash monitor
 ## Running the tests
 
 ```bash
-cd 03_class_mock/host_test/test_sum
+cd 04_hal_and_leds/host_test/test_sum
 idf.py --preview set-target linux
 idf.py build
 ./build/test_sum.elf
 ```
-Expected:
-```text
-[==========] Running 19 tests from 3 test suites.
-[----------] Global test environment set-up.
-[----------] 9 tests from TestSum
-...
-[----------] 2 tests from SumBossTest
-...
-[==========] 19 tests from 3 test suites ran. (0 ms total)
-[  PASSED  ] 19 tests.
-```
 
-More about tests on its own [README](/host_test/test_sum/README.md)
+For the full test strategy, see the [test_sum README](host_test/test_sum/README.md).
