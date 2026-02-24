@@ -1,0 +1,40 @@
+name: 04 - Host Testing (GoogleTest)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '04_hal_and_leds/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '04_hal_and_leds/**'
+
+jobs:
+  run_gtest_on_host:
+    name: Run GoogleTest on Linux
+    runs-on: ubuntu-latest
+    container: espressif/idf:release-v5.5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build and Run Tests
+        shell: bash
+        # Path to project of class Sum
+        working-directory: 04_hal_and_leds/host_test/test_sum
+        run: |
+          . $IDF_PATH/export.sh
+          idf.py --preview set-target linux
+          idf.py build
+          ./build/test_sum.elf
+
+      - name: Upload Test Artifacts (Optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-sum-elf
+          path: 04_hal_and_leds/host_test/test_sum/build/test_sum.elf
