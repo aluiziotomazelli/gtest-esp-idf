@@ -18,6 +18,9 @@
         {
             "path": "03_class_mocks"
         },
+        {
+            "path": "04_hal_and_leds"
+        },
     ],
     "settings": {
         "terminal.integrated.env.linux": {
