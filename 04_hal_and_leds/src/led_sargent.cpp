@@ -1,9 +1,8 @@
 // led_sargent.cpp
 
 #include "led_sargent.hpp"
-#include "gpio_hal.hpp"
 
-LedSargent::LedSargent(GpioHal &gpio_hal, gpio_num_t green, gpio_num_t red)
+LedSargent::LedSargent(IGpioHal &gpio_hal, gpio_num_t green, gpio_num_t red)
     : gpio_hal_(gpio_hal)
     , green_(green)
     , red_(red)
