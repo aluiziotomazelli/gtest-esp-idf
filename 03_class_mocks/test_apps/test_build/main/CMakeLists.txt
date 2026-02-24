@@ -3,6 +3,6 @@ idf_component_register(
         "main.cpp"
 
     REQUIRES 
-        "04_hal_and_leds"   #The component being tested
+        "03_class_mocks"   #The component being tested
 
 )
