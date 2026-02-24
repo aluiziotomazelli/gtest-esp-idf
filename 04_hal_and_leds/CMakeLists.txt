@@ -1,9 +1,10 @@
-set(COMPONENT_NAME 03_class_mocks)       #The name of the component
+set(COMPONENT_NAME 04_hal_and_leds)       #The name of the component
 
 idf_component_register(                 #Register the component
     SRCS 
         "src/sum.cpp"                   #The source file
         "src/sum_boss.cpp"              #The source file
+        "src/led_sargent.cpp"           #The source file
     
     INCLUDE_DIRS 
         "include"                       #The include directories
