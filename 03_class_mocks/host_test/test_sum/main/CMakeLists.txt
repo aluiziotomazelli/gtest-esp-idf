@@ -3,7 +3,7 @@ idf_component_register(
         "main.cpp"            #The main file
         "test_sum.cpp"        #The test file
         "test_sum_param.cpp"  #The parameterized test file
-        "test_sum_boss.cpp"   #The sum_boss test file
+        "test_sum_boss.cpp"   #The sum_bosstest file
     INCLUDE_DIRS 
         "."
     REQUIRES 
